@@ -4,6 +4,7 @@
 
 require 'visio'
 require 'excelwriter'
+require 'config'
 $pipe150 = 0
 
 class List
@@ -691,7 +692,10 @@ module DrawUtil
 
     if @enter_length != 0 then
       txtstr = "%.2f" % @enter_length
-      device.draw_text(midp.scalex, midp.scaley, "#{txtstr}", angle)
+      if @enter_length > 3 and @koubai and @koubai != 0 then
+        txtstr += " (%s)" % (((@koubai * 1000).to_i)/1000r)
+      end
+      device.draw_text(midp.scalex, midp.scaley, txtstr, angle)
     end
   end
 
@@ -708,9 +712,9 @@ module DrawUtil
               @pos.scaley + 5)
 
     if $hdrawf then
-      text = "No.%s H%2.2f %s" % [@no, @level + @alevel, name]
+      text = "No.%s H%2.2f GL %1.1f %s" % [@no, @level + @alevel, @alevel, name]
     else
-      text = "No.%s  %s" % [@no, name]
+      text = "No.%s GL %1.1f %s" % [@no, @alevel, name]
     end
     draw_label(device, text)
   end
@@ -1361,7 +1365,7 @@ class KoukyouMasu<MasuCommon
     @level = info[0]
     if @level == 0 then
       $hdrawf = false
-      $savedir = "foo"
+      $savedir = $conf_savedir
     end
     eangle = 0
     if info.cdr.cdr then
@@ -1431,9 +1435,9 @@ class KoukyouMasu<MasuCommon
     draw_oval(device, x - 4, y - 4, x + 4, y + 4)
 
     if $hdrawf then
-      text = "No.%s H%2.2f %s" % [@no, @level, name]
+      text = "No.%s H%2.2f GL %1.1f %s" % [@no, @level, @alevel, name]
     else
-      text = "No.%s  %s" % [@no, name]
+      text = "No.%s GL %1.1f %s" % [@no, @alevel, name]
     end
     draw_label(device, text)
 
@@ -2171,7 +2175,8 @@ end
 class Level<NotPrintParts
 
   def parse(tree)
-    @step = tree[1]
+#    @step = tree[1]
+    @alevel += tree[1].to_f
 
     parse_1direction(tree.cdr.cdr, 0)
 
@@ -2185,7 +2190,7 @@ class Level<NotPrintParts
   end
 
   def level
-    @level + @step
+    @level
   end
 
   def calc_level
@@ -2314,7 +2319,6 @@ if __FILE__ == $0 then
   rt = nil
 
   $default_material = "VU"
-  $savedir = "foo"
   $hdrawf = true
   $drawf = true
   $sekisanf = true
